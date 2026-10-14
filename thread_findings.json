@@ -1,0 +1,34 @@
+{
+  "hashing_thread_findings": [
+    {
+      "pid": 6278,
+      "tid": 99,
+      "process": "update_helper.exe",
+      "start_address": "0x38ec5e67",
+      "cycle_time": 1319540831,
+      "unbacked": true,
+      "high_cpu": true,
+      "verdict": "HASHING_THREAD",
+      "score": 100,
+      "reasons": [
+        "thread start address in unbacked/private executable memory",
+        "abnormal CPU cycle consumption",
+        "BOUND: unbacked execution + high CPU on the same thread"
+      ]
+    },
+    {
+      "pid": 4053,
+      "tid": 50,
+      "process": "update_helper.exe",
+      "start_address": "0x1199c6b4",
+      "cycle_time": 1376778,
+      "unbacked": true,
+      "high_cpu": false,
+      "verdict": "injected_thread",
+      "score": 50,
+      "reasons": [
+        "thread start address in unbacked/private executable memory"
+      ]
+    }
+  ]
+}

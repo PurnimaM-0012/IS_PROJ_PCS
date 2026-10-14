@@ -1,0 +1,82 @@
+[
+  {
+    "PID": 6278,
+    "Owner": "update_helper.exe",
+    "LocalAddr": "10.0.0.5",
+    "LocalPort": 49971,
+    "ForeignAddr": "190.71.63.58",
+    "ForeignPort": 14433,
+    "ForeignDomain": "pool.supportxmr.com",
+    "State": "ESTABLISHED"
+  },
+  {
+    "PID": 4053,
+    "Owner": "update_helper.exe",
+    "LocalAddr": "10.0.0.5",
+    "LocalPort": 52000,
+    "ForeignAddr": "152.109.9.8",
+    "ForeignPort": 4444,
+    "ForeignDomain": "pool.supportxmr.com",
+    "State": "ESTABLISHED"
+  },
+  {
+    "PID": 8827,
+    "Owner": "svch0st.exe",
+    "LocalAddr": "10.0.0.5",
+    "LocalPort": 56775,
+    "ForeignAddr": "130.155.7.144",
+    "ForeignPort": 443,
+    "ForeignDomain": "microsoft.com",
+    "State": "ESTABLISHED"
+  },
+  {
+    "PID": 8931,
+    "Owner": "winword.exe",
+    "LocalAddr": "10.0.0.5",
+    "LocalPort": 62898,
+    "ForeignAddr": "57.115.151.72",
+    "ForeignPort": 80,
+    "ForeignDomain": "office365.com",
+    "State": "ESTABLISHED"
+  },
+  {
+    "PID": 6278,
+    "Owner": "update_helper.exe",
+    "LocalAddr": "10.0.0.5",
+    "LocalPort": 63000,
+    "ForeignAddr": "88.72.40.56",
+    "ForeignPort": 443,
+    "ForeignDomain": "microsoft.com",
+    "State": "ESTABLISHED"
+  },
+  {
+    "PID": 4053,
+    "Owner": "update_helper.exe",
+    "LocalAddr": "10.0.0.5",
+    "LocalPort": 52191,
+    "ForeignAddr": "98.25.92.217",
+    "ForeignPort": 8080,
+    "ForeignDomain": "google.com",
+    "State": "ESTABLISHED"
+  },
+  {
+    "PID": 8827,
+    "Owner": "svch0st.exe",
+    "LocalAddr": "10.0.0.5",
+    "LocalPort": 57819,
+    "ForeignAddr": "207.12.187.118",
+    "ForeignPort": 8080,
+    "ForeignDomain": "office365.com",
+    "State": "ESTABLISHED"
+  },
+  {
+    "PID": 8931,
+    "Owner": "winword.exe",
+    "LocalAddr": "10.0.0.5",
+    "LocalPort": 51734,
+    "ForeignAddr": "142.76.213.161",
+    "ForeignPort": 443,
+    "ForeignDomain": "cloudfront.net",
+    "State": "ESTABLISHED"
+  }
+]

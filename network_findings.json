@@ -1,0 +1,68 @@
+{
+  "network_findings": [
+    {
+      "pid": 6278,
+      "process": "update_helper.exe",
+      "foreign_ip": "190.71.63.58",
+      "foreign_port": 14433,
+      "foreign_domain": "pool.supportxmr.com",
+      "score": 100,
+      "flags": [
+        "known_mining_port (14433)",
+        "mining_domain_pattern (pool.supportxmr.com)",
+        "long_lived_connection (2518s)",
+        "small_uniform_packets (avg 135B)",
+        "steady_heartbeat (8.3 pkt/min)"
+      ],
+      "duration_seconds": 2518.3,
+      "avg_packet_size": 135.0,
+      "packets_per_minute": 8.3
+    },
+    {
+      "pid": 4053,
+      "process": "update_helper.exe",
+      "foreign_ip": "152.109.9.8",
+      "foreign_port": 4444,
+      "foreign_domain": "pool.supportxmr.com",
+      "score": 100,
+      "flags": [
+        "known_mining_port (4444)",
+        "mining_domain_pattern (pool.supportxmr.com)",
+        "long_lived_connection (1270s)",
+        "small_uniform_packets (avg 215B)",
+        "steady_heartbeat (16.8 pkt/min)"
+      ],
+      "duration_seconds": 1269.6,
+      "avg_packet_size": 215.3,
+      "packets_per_minute": 16.8
+    },
+    {
+      "pid": 8827,
+      "process": "svch0st.exe",
+      "foreign_ip": "130.155.7.144",
+      "foreign_port": 443,
+      "foreign_domain": "microsoft.com",
+      "score": 10,
+      "flags": [
+        "steady_heartbeat (23.8 pkt/min)"
+      ],
+      "duration_seconds": 40.4,
+      "avg_packet_size": 949.5,
+      "packets_per_minute": 23.8
+    },
+    {
+      "pid": 6278,
+      "process": "update_helper.exe",
+      "foreign_ip": "88.72.40.56",
+      "foreign_port": 443,
+      "foreign_domain": "microsoft.com",
+      "score": 10,
+      "flags": [
+        "steady_heartbeat (20.2 pkt/min)"
+      ],
+      "duration_seconds": 23.7,
+      "avg_packet_size": 917.4,
+      "packets_per_minute": 20.2
+    }
+  ]
+}

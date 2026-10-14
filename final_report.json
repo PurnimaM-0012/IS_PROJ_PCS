@@ -1,0 +1,181 @@
+{
+  "image": "synthetic://generated-sample",
+  "summary": {
+    "total_processes_pslist": 25,
+    "total_processes_psscan": 28,
+    "hidden_process_count": 3,
+    "malfind_hit_count": 4,
+    "network_hit_count": 4,
+    "hashing_thread_count": 2,
+    "cross_category_match_count": 3
+  },
+  "process_findings": [
+    {
+      "pid": 8827,
+      "name": "svch0st.exe",
+      "ppid": 0,
+      "flags": [
+        "hidden_from_pslist (present in psscan only)",
+        "orphaned_process (no valid parent)",
+        "cross_category_match (memory + network)"
+      ],
+      "score": 100
+    },
+    {
+      "pid": 6278,
+      "name": "update_helper.exe",
+      "ppid": null,
+      "flags": [
+        "hidden_from_pslist (present in psscan only)",
+        "orphaned_process (no valid parent)",
+        "cross_category_match (memory + network)"
+      ],
+      "score": 100
+    },
+    {
+      "pid": 4053,
+      "name": "update_helper.exe",
+      "ppid": 0,
+      "flags": [
+        "hidden_from_pslist (present in psscan only)",
+        "orphaned_process (no valid parent)",
+        "cross_category_match (memory + network)"
+      ],
+      "score": 100
+    }
+  ],
+  "malfind_findings": [
+    {
+      "pid": 6278,
+      "process": "update_helper.exe",
+      "start_vpn": "0x3ffea00a",
+      "protection": "PAGE_EXECUTE_READWRITE",
+      "score": 100
+    },
+    {
+      "pid": 4053,
+      "process": "update_helper.exe",
+      "start_vpn": "0x511e3f7c",
+      "protection": "PAGE_EXECUTE_READWRITE",
+      "score": 100
+    },
+    {
+      "pid": 8931,
+      "process": "winword.exe",
+      "start_vpn": "0x159cee67",
+      "protection": "PAGE_EXECUTE_READWRITE",
+      "score": 100
+    },
+    {
+      "pid": 8827,
+      "process": "svch0st.exe",
+      "start_vpn": "0x5228b981",
+      "protection": "PAGE_EXECUTE_READWRITE",
+      "score": 100
+    }
+  ],
+  "network_findings": [
+    {
+      "pid": 6278,
+      "process": "update_helper.exe",
+      "foreign_ip": "190.71.63.58",
+      "foreign_port": 14433,
+      "foreign_domain": "pool.supportxmr.com",
+      "score": 100,
+      "flags": [
+        "known_mining_port (14433)",
+        "mining_domain_pattern (pool.supportxmr.com)",
+        "long_lived_connection (2518s)",
+        "small_uniform_packets (avg 135B)",
+        "steady_heartbeat (8.3 pkt/min)",
+        "cross_category_match (memory + network)"
+      ],
+      "duration_seconds": 2518.3,
+      "avg_packet_size": 135.0,
+      "packets_per_minute": 8.3
+    },
+    {
+      "pid": 4053,
+      "process": "update_helper.exe",
+      "foreign_ip": "152.109.9.8",
+      "foreign_port": 4444,
+      "foreign_domain": "pool.supportxmr.com",
+      "score": 100,
+      "flags": [
+        "known_mining_port (4444)",
+        "mining_domain_pattern (pool.supportxmr.com)",
+        "long_lived_connection (1270s)",
+        "small_uniform_packets (avg 215B)",
+        "steady_heartbeat (16.8 pkt/min)",
+        "cross_category_match (memory + network)"
+      ],
+      "duration_seconds": 1269.6,
+      "avg_packet_size": 215.3,
+      "packets_per_minute": 16.8
+    },
+    {
+      "pid": 8827,
+      "process": "svch0st.exe",
+      "foreign_ip": "130.155.7.144",
+      "foreign_port": 443,
+      "foreign_domain": "microsoft.com",
+      "score": 30,
+      "flags": [
+        "steady_heartbeat (23.8 pkt/min)",
+        "cross_category_match (memory + network)"
+      ],
+      "duration_seconds": 40.4,
+      "avg_packet_size": 949.5,
+      "packets_per_minute": 23.8
+    },
+    {
+      "pid": 6278,
+      "process": "update_helper.exe",
+      "foreign_ip": "88.72.40.56",
+      "foreign_port": 443,
+      "foreign_domain": "microsoft.com",
+      "score": 30,
+      "flags": [
+        "steady_heartbeat (20.2 pkt/min)",
+        "cross_category_match (memory + network)"
+      ],
+      "duration_seconds": 23.7,
+      "avg_packet_size": 917.4,
+      "packets_per_minute": 20.2
+    }
+  ],
+  "hashing_thread_findings": [
+    {
+      "pid": 6278,
+      "tid": 99,
+      "process": "update_helper.exe",
+      "start_address": "0x38ec5e67",
+      "cycle_time": 1319540831,
+      "unbacked": true,
+      "high_cpu": true,
+      "verdict": "HASHING_THREAD",
+      "score": 100,
+      "reasons": [
+        "thread start address in unbacked/private executable memory",
+        "abnormal CPU cycle consumption",
+        "BOUND: unbacked execution + high CPU on the same thread",
+        "cross_category_match (hashing thread + mining traffic)"
+      ]
+    },
+    {
+      "pid": 4053,
+      "tid": 50,
+      "process": "update_helper.exe",
+      "start_address": "0x1199c6b4",
+      "cycle_time": 1376778,
+      "unbacked": true,
+      "high_cpu": false,
+      "verdict": "injected_thread",
+      "score": 70,
+      "reasons": [
+        "thread start address in unbacked/private executable memory",
+        "cross_category_match (hashing thread + mining traffic)"
+      ]
+    }
+  ]
+}
