@@ -29,6 +29,12 @@ except Exception:
 
 st.set_page_config(page_title="Memory Forensics Dashboard", layout="wide")
 
+view = st.sidebar.radio("View", ["Forensics report", "Live network capture"])
+if view == "Live network capture":
+    from live_view import render as render_live
+    render_live()
+    st.stop()
+
 st.title("Memory Forensics Anomaly Dashboard")
 st.caption("Volatility3-driven process, memory-region, thread & network anomaly triage")
 

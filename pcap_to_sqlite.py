@@ -19,8 +19,6 @@ import argparse
 import sqlite3
 from collections import defaultdict
 
-import pyshark
-
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS flows (
     src_ip TEXT, src_port INTEGER,
@@ -35,7 +33,9 @@ CREATE TABLE IF NOT EXISTS flows (
 
 
 def extract_flows(pcap_path):
-    cap = pyshark.FileCapture(pcap_path, keep_packets=False)
+    import pyshark  # lazy: live_capture.py reuses this module without pyshark
+
+    cap =pyshark.FileCapture(pcap_path, keep_packets=False)
     flows = defaultdict(lambda: {"sizes": [], "timestamps": []})
 
     for pkt in cap:

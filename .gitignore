@@ -18,3 +18,8 @@ env/
 .idea/
 .DS_Store
 Thumbs.db
+
+# Live captures contain real traffic from this machine -- keep out of git
+live_capture*.json
+*.pcap
+*.pcapng

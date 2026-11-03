@@ -27,12 +27,20 @@ PPM_STEADY_MIN = 5                 # steady low-frequency heartbeat range
 PPM_STEADY_MAX = 30
 
 
-def lookup_flow(cursor, dst_ip, dst_port):
-    cursor.execute(
-        "SELECT packet_count, total_bytes, avg_packet_size, duration_seconds, "
-        "packets_per_minute FROM flows WHERE dst_ip = ? AND dst_port = ?",
-        (dst_ip, dst_port),
-    )
+_FLOW_COLS = ("SELECT packet_count, total_bytes, avg_packet_size, duration_seconds, "
+              "packets_per_minute FROM flows ")
+
+
+def lookup_flow(cursor, dst_ip, dst_port, src_port=None):
+    # Prefer an exact match on the local (source) port: real traffic often has
+    # several connections from one host to the same server:443.
+    if src_port is not None:
+        cursor.execute(_FLOW_COLS + "WHERE dst_ip = ? AND dst_port = ? AND src_port = ?",
+                       (dst_ip, dst_port, src_port))
+        row = cursor.fetchone()
+        if row:
+            return row
+    cursor.execute(_FLOW_COLS + "WHERE dst_ip = ? AND dst_port = ?", (dst_ip, dst_port))
     return cursor.fetchone()
 
 
@@ -73,13 +81,20 @@ def correlate(netscan_path, db_path):
         connections = json.load(f)
 
     conn = sqlite3.connect(db_path)
-    cur = conn.cursor()
+    try:
+        return correlate_connections(connections, conn.cursor())
+    finally:
+        conn.close()
 
+
+def correlate_connections(connections, cur):
+    """Score netscan-format connection rows against the flows table behind
+    `cur`. Shared by the file-based pipeline and live_capture.py."""
     findings = []
     for row in connections:
         dst_ip = row.get("ForeignAddr")
         dst_port = row.get("ForeignPort")
-        flow_row = lookup_flow(cur, dst_ip, dst_port)
+        flow_row = lookup_flow(cur, dst_ip, dst_port, row.get("LocalPort"))
 
         result = score_connection(row, flow_row)
         if result["score"] == 0:
@@ -103,7 +118,6 @@ def correlate(netscan_path, db_path):
             })
         findings.append(entry)
 
-    conn.close()
     return sorted(findings, key=lambda f: -f["score"])
 
 
