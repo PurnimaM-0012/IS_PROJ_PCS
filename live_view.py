@@ -198,9 +198,9 @@ def _render_results(capture, min_score):
 
 def render():
     st.title("Live Network Capture")
-    st.caption("Real traffic scored with the same cryptojacking heuristic as the "
-               "synthetic pipeline (mining ports/domains, long-lived, small "
-               "uniform packets, steady heartbeat).")
+    st.caption("Real traffic scored with the cryptojacking network heuristic "
+               "(mining ports/domains, long-lived, small uniform packets, "
+               "steady heartbeat).")
 
     with st.expander("How to capture (recommended workflow)", expanded=STATE_KEY not in st.session_state):
         st.markdown(

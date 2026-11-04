@@ -1,0 +1,7 @@
+streamlit>=1.37
+pandas>=2.0
+plotly>=5.0
+psutil>=5.9
+volatility3>=2.26
+# optional: only for pcap_to_sqlite.py on existing capture files
+pyshark>=0.6

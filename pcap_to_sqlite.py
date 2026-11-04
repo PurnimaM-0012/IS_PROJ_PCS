@@ -5,7 +5,7 @@ pcap_to_sqlite.py
 Parses a real .pcap/.pcapng capture with Pyshark, aggregates packets into
 flows (same 4-tuple: src_ip, src_port, dst_ip, dst_port), and writes the
 flow-level stats into a SQLite database. This is the "PCAP to SQLITE"
-deliverable, used when you have an actual capture instead of synthetic data.
+deliverable, for analysing an existing capture file.
 
 Requirements:
     pip install pyshark

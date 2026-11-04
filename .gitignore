@@ -23,3 +23,12 @@ Thumbs.db
 live_capture*.json
 *.pcap
 *.pcapng
+
+# Memory dumps and reports from real machines -- never commit
+*.dmp
+*.DMP
+*.raw
+*.mem
+*.vmem
+kernel_report*.json
+kernel_job*.json

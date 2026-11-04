@@ -2,13 +2,16 @@
 """
 streamlit_app.py
 ----------------
-Phase 5: Visual dashboard for the heuristic_analyzer.py / merge_reports.py
-output.
+Visual dashboard for real-machine cryptojacking triage.
 
 Usage:
     streamlit run streamlit_app.py
 
-Then upload (or point at) final_report.json produced by merge_reports.py.
+Views (sidebar):
+  * Forensics report      -- the report from kernel_dump_analyzer.py
+                             (default: C:\\memdumps\\kernel_report.json)
+  * Live network capture  -- live_capture.py output / pcap / local capture
+  * Kernel memory dump    -- analyse a Task Manager live kernel dump
 
 Requirements:
     pip install streamlit pandas plotly
@@ -29,10 +32,15 @@ except Exception:
 
 st.set_page_config(page_title="Memory Forensics Dashboard", layout="wide")
 
-view = st.sidebar.radio("View", ["Forensics report", "Live network capture"])
+view = st.sidebar.radio("View", ["Forensics report", "Live network capture",
+                                 "Kernel memory dump"], key="view")
 if view == "Live network capture":
     from live_view import render as render_live
     render_live()
+    st.stop()
+if view == "Kernel memory dump":
+    from memory_view import render as render_memory
+    render_memory()
     st.stop()
 
 st.title("Memory Forensics Anomaly Dashboard")
@@ -42,25 +50,33 @@ st.caption("Volatility3-driven process, memory-region, thread & network anomaly 
 # Load report
 # ---------------------------------------------------------------------------
 
-source = st.radio("Report source", ["Upload JSON", "Local file path"], horizontal=True)
+DEFAULT_REPORT = r"C:\memdumps\kernel_report.json"
+
+source = st.radio("Report source", ["Local file path", "Upload JSON"], horizontal=True,
+                  key="report_source")
 
 report = None
 if source == "Upload JSON":
-    uploaded = st.file_uploader("Upload final_report.json", type="json")
+    uploaded = st.file_uploader("Upload a report JSON", type="json")
     if uploaded:
         report = json.load(uploaded)
 else:
-    path = st.text_input("Path to report file", value="final_report.json")
+    path = st.text_input("Path to report file",
+                         value=st.session_state.get("report_path_default", DEFAULT_REPORT))
     if path:
         try:
             with open(path) as f:
                 report = json.load(f)
         except FileNotFoundError:
-            st.warning(f"No file found at {path}")
+            st.warning(f"No report at {path} yet.")
 
 if report is None:
-    st.info("Load a report produced by `heuristic_analyzer.py` / `merge_reports.py` to continue.")
+    st.info("No report loaded. Create one on the **Kernel memory dump** page (sidebar): "
+            "take a Task Manager live kernel dump, then click *Analyse dump*.")
     st.stop()
+
+for note in report.get("analysis_notes", []):
+    st.caption(f"ℹ {note}")
 
 # ---------------------------------------------------------------------------
 # Summary row
@@ -120,13 +136,24 @@ malfind_findings = report.get("malfind_findings", [])
 if malfind_findings:
     df_mal = pd.DataFrame(malfind_findings)
 
-    fig_heat = px.density_heatmap(
-        df_mal, x="process", y="score",
-        nbinsy=10,
-        color_continuous_scale="Inferno",
-        title="Malfind hit concentration by process / severity",
+    # One bar per process: how many flagged regions it has, coloured by the
+    # highest score among them (top 20 processes by count).
+    agg = {"regions": ("score", "size"), "max_score": ("score", "max")}
+    if "size_kb" in df_mal.columns:
+        agg["total_kb"] = ("size_kb", "sum")
+    df_bar = (df_mal.groupby("process", as_index=False).agg(**agg)
+              .sort_values("regions", ascending=False).head(20)
+              .sort_values("regions"))
+    fig_bar = px.bar(
+        df_bar, x="regions", y="process", orientation="h",
+        color="max_score", color_continuous_scale="Reds", range_color=[0, 100],
+        hover_data=[c for c in ("max_score", "total_kb") if c in df_bar.columns],
+        labels={"regions": "Flagged RWX regions", "process": "Process",
+                "max_score": "Highest score", "total_kb": "Total size (KB)"},
+        title="Flagged memory regions per process (top 20)",
     )
-    st.plotly_chart(fig_heat, use_container_width=True)
+    fig_bar.update_layout(height=max(300, 28 * len(df_bar) + 120))
+    st.plotly_chart(fig_bar, use_container_width=True)
 
     st.dataframe(df_mal, use_container_width=True, hide_index=True)
 else:
@@ -167,8 +194,7 @@ if hash_findings:
             if c in df_thr.columns]
     st.dataframe(df_thr[cols], use_container_width=True, hide_index=True)
 else:
-    st.info("No hashing-thread findings loaded (run thread_binding.py on a dump, "
-            "or thread_synth.py for the demo, then merge with --threads).")
+    st.success("No suspicious threads flagged in this dump.")
 
 st.divider()
 
@@ -253,30 +279,37 @@ st.divider()
 # ---------------------------------------------------------------------------
 
 st.subheader("Detection Accuracy (vs. ground-truth labels)")
-st.caption("Measures precision / recall / accuracy / false-positive rate per "
-           "signal, and compares single-signal vs multi-signal. On SYNTHETIC "
-           "data these numbers are illustrative only — real results need a "
-           "real labeled dump.")
+st.caption("Precision / recall / false-positive rate per signal, measured against "
+           "processes you label in this dump. Memory forensics and network analysis "
+           "are evaluated separately.")
 
 if not _HAS_EVAL:
     st.warning("evaluate.py not found next to this app — put it in the same folder "
                "to enable the accuracy section.")
 else:
-    gt_src = st.radio("Ground-truth source", ["Local file path", "Upload JSON"],
-                      horizontal=True, key="gt_src")
+    proc_list = report.get("process_list", [])
     ground = None
-    if gt_src == "Upload JSON":
-        up = st.file_uploader("Upload ground_truth.json", type="json", key="gt_up")
-        if up:
-            ground = json.load(up)
+    if not proc_list:
+        st.info("This report has no process list, so it can't be labelled. Re-analyse "
+                "the dump on the Kernel memory dump page to enable accuracy.")
     else:
-        gp = st.text_input("Path to ground_truth.json", value="ground_truth.json")
-        if gp:
-            try:
-                with open(gp) as f:
-                    ground = json.load(f)
-            except FileNotFoundError:
-                st.info("No ground_truth.json found yet at that path.")
+        st.caption("Enter the PID(s) you KNOW are malicious (e.g. the PID rwx_demo.py "
+                   "printed). Every other process running in this dump counts as benign.")
+        names = {r["pid"]: r["name"] for r in proc_list}
+        raw = st.text_input("Malicious PIDs (comma-separated)", key="gt_mal_pids")
+        try:
+            mal = {int(x) for x in raw.replace(" ", "").split(",") if x}
+        except ValueError:
+            st.error("PIDs must be numbers, e.g. 12345, 6789")
+            mal = set()
+        missing = sorted(mal - names.keys())
+        if missing:
+            st.warning(f"Not running in this dump: {missing}. Was the process still "
+                       "running when the dump was taken?")
+        if mal & names.keys():
+            st.write("Malicious: " + ", ".join(f"{p} ({names[p]})" for p in sorted(mal & names.keys())))
+            ground = {"malicious_pids": sorted(mal & names.keys()),
+                      "benign_pids": sorted(names.keys() - mal)}
 
     if ground:
         malicious = ground.get("malicious_pids", [])
@@ -285,40 +318,130 @@ else:
                  f"**{len(benign)}** benign PIDs.")
 
         sigs = flagged_pids_by_signal(report)
-        rows = []
-        for name, flagged in sigs.items():
-            m = eval_metrics(flagged, malicious, benign)
-            rows.append({
-                "signal": name,
-                "TP": m["TP"], "FP": m["FP"], "FN": m["FN"], "TN": m["TN"],
-                "precision": m["precision"], "recall": m["recall"],
-                "accuracy": m["accuracy"], "FPR": m["fpr"],
-            })
-        df_eval = pd.DataFrame(rows)
+        MEM = ["process (pslist/psscan)", "malfind (RWX region)",
+               "thread-binding (HASHING_THREAD)"]
+        NET = "network (mining traffic)"
+        mem_counts = {}
+        for name in MEM:
+            for pid in sigs[name]:
+                mem_counts[pid] = mem_counts.get(pid, 0) + 1
+        mem_any = set(mem_counts)
+        mem_multi = {p for p, c in mem_counts.items() if c >= 2}
 
-        st.dataframe(
-            df_eval.style.format({"precision": "{:.2f}", "recall": "{:.2f}",
-                                  "accuracy": "{:.2f}", "FPR": "{:.2f}"},
-                                 na_rep="n/a"),
-            use_container_width=True, hide_index=True,
-        )
+        # Network analysis can only judge processes that used the network.
+        net_pop = report.get("network_observed_pids")
+        if net_pop is not None:
+            net_mal = [p for p in malicious if p in set(net_pop)]
+            net_ben = [p for p in benign if p in set(net_pop)]
+        else:
+            net_mal, net_ben = malicious, benign
+        has_network = bool(report.get("network_findings")) or net_pop is not None
 
-        # Grouped bar: precision / recall / FPR per signal (the comparison story)
-        plot_df = df_eval.melt(
-            id_vars="signal", value_vars=["precision", "recall", "FPR"],
-            var_name="metric", value_name="value").dropna(subset=["value"])
-        if not plot_df.empty:
-            fig_eval = px.bar(
-                plot_df, x="signal", y="value", color="metric",
-                barmode="group", range_y=[0, 1],
-                title="Per-signal precision / recall / false-positive rate "
-                      "(compare single signals vs MULTI-SIGNAL)",
-            )
-            fig_eval.update_xaxes(tickangle=-20)
-            st.plotly_chart(fig_eval, use_container_width=True)
+        def _why_undefined(metric, m):
+            if metric == "precision":
+                return "no alarms raised"
+            if metric == "recall":
+                return "no malicious process in this population"
+            return "no benign process in this population"
 
-        st.caption("Lower FPR with maintained precision on the MULTI-SIGNAL / "
-                   "thread-binding rows vs malfind-alone is the measured result.")
-    else:
-        st.info("Provide ground_truth.json (malicious_pids + benign_pids) to "
-                "compute accuracy.")
+        def _signal_card(title, m, what):
+            with st.container(border=True):
+                st.markdown(f"**{title}**")
+                st.caption(what)
+                c = st.columns(4)
+                c[0].metric("Alarms raised", m["TP"] + m["FP"],
+                            help="Processes this signal flagged (TP + FP)")
+                for col, key, label, hint in (
+                        (c[1], "precision", "Precision", "Of its alarms, share that were real"),
+                        (c[2], "recall", "Recall", "Of the malicious processes, share it caught"),
+                        (c[3], "fpr", "False-positive rate", "Share of benign processes falsely flagged")):
+                    v = m[key]
+                    col.metric(label, "—" if v is None else f"{v:.2f}",
+                               help=hint + ("" if v is not None
+                                            else f". Undefined: {_why_undefined(key, m)}."))
+                st.caption(f"TP {m['TP']} · FP {m['FP']} · FN {m['FN']} · TN {m['TN']}")
+
+        def _technique_chart(rows, title):
+            plot = []
+            for name, m in rows:
+                for key, label in (("precision", "Precision"), ("recall", "Recall"),
+                                   ("fpr", "False-positive rate")):
+                    v = m[key]
+                    plot.append({"signal": name, "metric": label,
+                                 "value": 0 if v is None else v,
+                                 "label": "n/a" if v is None else f"{v:.2f}"})
+            fig = px.bar(pd.DataFrame(plot), x="signal", y="value", color="metric",
+                         barmode="group", range_y=[0, 1.1], text="label", title=title,
+                         labels={"value": "", "signal": ""})
+            fig.update_traces(textposition="outside")
+            st.plotly_chart(fig, use_container_width=True)
+
+        all_rows = []
+        tab_mem, tab_net, tab_comb = st.tabs(
+            ["🧠 Memory forensics", "🌐 Network analysis", "🔗 Combined"])
+
+        with tab_mem:
+            st.caption(f"Evaluated on every labelled process in the dump "
+                       f"({len(malicious)} malicious, {len(benign)} benign).")
+            mem_rows = [(n, eval_metrics(sigs[n], malicious, benign)) for n in MEM]
+            mem_rows.append(("≥2 memory signals agree",
+                             eval_metrics(mem_multi, malicious, benign)))
+            descr = {
+                MEM[0]: "Process hidden from the OS list but found by scanning",
+                MEM[1]: "Private executable + writable memory region",
+                MEM[2]: "A thread in unbacked memory that also burns abnormal CPU",
+                "≥2 memory signals agree": "Flagged by two or more memory signals",
+            }
+            cols = st.columns(2)
+            for i, (name, m) in enumerate(mem_rows):
+                with cols[i % 2]:
+                    _signal_card(name, m, descr[name])
+            _technique_chart(mem_rows, "Memory forensics signals")
+            all_rows += [("memory", n, m) for n, m in mem_rows]
+
+        with tab_net:
+            if not has_network:
+                st.info("No network data in this report. Supply a live capture "
+                        "(taken around the same time) when analysing the dump.")
+            else:
+                if net_pop is not None:
+                    st.caption(f"Evaluated only on the {len(net_mal) + len(net_ben)} labelled "
+                               "processes that made network connections during the capture "
+                               "— the network signal can't see the others.")
+                else:
+                    st.caption("This report doesn't list which processes used the network, "
+                               "so every labelled process is counted.")
+                m = eval_metrics(sigs[NET], net_mal, net_ben)
+                if not net_mal:
+                    st.warning("The malicious process made no network connections during "
+                               "the capture, so recall can't be measured here — network "
+                               "analysis had nothing to detect.")
+                _signal_card(NET, m, "Mining-like connection (ports, pool domains, "
+                                     "long-lived steady small packets), score ≥ 80")
+                all_rows.append(("network", NET, m))
+
+        with tab_comb:
+            st.caption("Not a comparison between the techniques: this asks whether "
+                       "independent evidence from BOTH agrees on the same process.")
+            if not has_network:
+                st.info("Needs network data to combine with the memory findings.")
+            else:
+                both = mem_any & sigs[NET]
+                m = eval_metrics(both, malicious, benign)
+                _signal_card("Memory AND network agree", m,
+                             "Flagged by at least one memory signal and by network analysis")
+                all_rows.append(("combined", "Memory AND network agree", m))
+
+        with st.expander("All counts (incl. accuracy)"):
+            st.caption("Accuracy is shown for completeness but is misleading here: with "
+                       f"{len(malicious)} malicious vs {len(benign)} benign processes, a "
+                       "detector that flags nothing still scores ~1.00.")
+            st.dataframe(pd.DataFrame([{
+                "technique": t, "signal": n, "TP": m["TP"], "FP": m["FP"], "FN": m["FN"],
+                "TN": m["TN"], "precision": m["precision"], "recall": m["recall"],
+                "FPR": m["fpr"], "accuracy": m["accuracy"]} for t, n, m in all_rows]).style
+                .format({k: "{:.2f}" for k in ("precision", "recall", "FPR", "accuracy")},
+                        na_rep="n/a"),
+                use_container_width=True, hide_index=True)
+    elif proc_list:
+        st.info("Enter the malicious PID(s) above to compute accuracy.")

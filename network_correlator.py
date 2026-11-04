@@ -6,8 +6,8 @@ Joins windows.netscan rows (which PID owns which connection) against flow
 stats in SQLite (what that connection's traffic actually looked like), and
 scores each match against a cryptojacking/mining heuristic.
 
-Works identically whether flows.db was built by pcap_to_sqlite.py (real
-capture) or flow_synth.py (synthetic) -- same schema either way.
+flows.db is built by pcap_to_sqlite.py; live_capture.py reuses the same
+scoring via correlate_connections() on an in-memory table.
 
 Usage:
     python network_correlator.py --netscan netscan.json --db flows.db \

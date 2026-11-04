@@ -8,7 +8,7 @@ the Streamlit app ("Live network capture" mode).
 
 What it collects during the capture window:
   * packets   -> via tshark, aggregated into flows (same stats/schema as
-                 pcap_to_sqlite.py / flow_synth.py)
+                 pcap_to_sqlite.py)
   * PID map   -> psutil polled every second: which process owns which
                  connection. This is the live equivalent of
                  windows.netscan from a memory dump.
@@ -16,7 +16,7 @@ What it collects during the capture window:
                  mining-domain heuristic still works on real traffic.
 
 Scoring reuses network_correlator.score_connection, so live findings are
-judged by exactly the same heuristic as the synthetic pipeline.
+judged by exactly the same heuristic as the rest of the pipeline.
 
 Requirements:
     Wireshark/tshark (+ Npcap on Windows), pip install psutil

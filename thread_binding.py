@@ -73,10 +73,21 @@ def _in_ranges(addr: int, ranges: List[Range]) -> bool:
     return any(lo <= addr < hi for (lo, hi) in ranges)
 
 
-def _cpu_outliers(samples: List[ThreadSample], k: float = 3.0) -> set:
+def _cpu_outliers(samples: List[ThreadSample], k: float = 3.0,
+                  log_scale: bool = False) -> set:
     """Threads whose accumulated cycles are a HIGH outlier vs the rest.
     Uses a robust MAD-style test (median + k*MAD) so one giant miner thread
-    doesn't inflate a mean and hide itself. Returns the set of (pid,tid)."""
+    doesn't inflate a mean and hide itself. Returns the set of (pid,tid).
+
+    log_scale=True runs the same test on log10(cycles). Real machines have
+    thousands of threads with an extremely skewed cycle distribution (most
+    near-idle), where a linear MAD flags a large share of all threads."""
+    if log_scale:
+        import math
+        logged = [ThreadSample(s.pid, s.tid, s.process, s.start_address,
+                               math.log10(s.cycle_time) if s.cycle_time and s.cycle_time > 0 else 0)
+                  for s in samples]
+        return _cpu_outliers(logged, k)
     cycles = [s.cycle_time for s in samples if s.cycle_time is not None]
     if len(cycles) < 3:
         # too few to do statistics; fall back to "top 10% by cycles"
@@ -89,9 +100,10 @@ def _cpu_outliers(samples: List[ThreadSample], k: float = 3.0) -> set:
             if s.cycle_time is not None and s.cycle_time >= thresh and s.cycle_time > 0}
 
 
-def bind_threads(samples: List[ThreadSample], mad_k: float = 3.0) -> List[ThreadVerdict]:
+def bind_threads(samples: List[ThreadSample], mad_k: float = 3.0,
+                 log_scale: bool = False) -> List[ThreadVerdict]:
     """Core: produce a verdict per thread by binding the two signals."""
-    high = _cpu_outliers(samples, k=mad_k)
+    high = _cpu_outliers(samples, k=mad_k, log_scale=log_scale)
     out: List[ThreadVerdict] = []
     for s in samples:
         unbacked = not _in_ranges(s.start_address, s.image_exec_ranges)
@@ -139,7 +151,8 @@ def extract_from_dump(dump_path: str) -> List[ThreadSample]:
 
     framework.import_files(volatility3.plugins)
     ctx = contexts.Context()
-    ctx.config["automagic.LayerStacker.single_location"] = "file://" + dump_path
+    from pathlib import Path
+    ctx.config["automagic.LayerStacker.single_location"] = Path(dump_path).resolve().as_uri()
     amagic = automagic.available(ctx)
     plist = framework.list_plugins()
     constructed = plugins.construct_plugin(                         # VERIFY signature
@@ -147,7 +160,8 @@ def extract_from_dump(dump_path: str) -> List[ThreadSample]:
         interfaces.configuration.path_join("plugins", "PsList"), None, None)
     kernel = ctx.modules[constructed.config["kernel"]]
     layer, symtab = kernel.layer_name, kernel.symbol_table_name
-    sep = interfaces.configuration.path_separator
+    from volatility3.framework import constants
+    sep = constants.BANG  # symbol-table separator ("!"), not the config-path "."
 
     samples: List[ThreadSample] = []
     for proc in pslist.PsList.list_processes(ctx, layer, symtab):
